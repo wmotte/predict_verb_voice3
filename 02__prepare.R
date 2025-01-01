@@ -6,15 +6,33 @@
 library( 'caret' )
 library( 'dplyr' )
 
+###
+# Get matrix
+##
+get_matrix <- function( embedding, words, label = 'covariate_1' )
+{
+    # convert to data.frame with 'word' as index
+    emb <- data.frame( embedding )
+    emb$word <- rownames( embedding )
+    
+    covariate <- data.frame( word = words, index = 1:length( words ) )
+    
+    out <- merge( covariate, emb, all.x = TRUE )
+    
+    res <- out[ order( out$index ), ]
+    
+    res2 <- res[ , grep( 'X', colnames( res ) ) ]
+    colnames( res2 ) <- paste0( label, '__', 1:ncol( res2 ) )
+    
+    return( res2 )
+}
 
 ################################################################################
 # END CUSTOM FUNCTIONS
 ################################################################################
 
-min_term_freq <- 20
-
 # outdir
-outdir <- 'out.03.prepare.train.test'
+outdir <- 'out.02.prepare'
 dir.create( outdir, showWarnings = FALSE )
 
 # set seed
@@ -31,17 +49,17 @@ df <- as.data.frame( readr::read_tsv( 'out.00.select.biblical.time/merged_ALL.ts
 # load embedding
 load( 'out.01.embed/saved_glove__5.RData' )
 
-# vector names
-rr <- rownames( word_vectors )
+# Define column names and labels
+covariate_columns <- c( paste0( "covariate_le_", 1:5 ), paste0( "covariate_ri_", 1:5 ) )
+labels <- covariate_columns
 
-rr == "a-s---fa-"
+# Generate matrices and merge column-wise
+merged_df <- do.call( cbind, lapply( seq_along( covariate_columns ), function( i ) {
+    get_matrix( embedding, words = df[[ covariate_columns[ i ] ]], label = labels[ i ] )
+} ) )
 
-
-sentence <- df$covariate_le_1[1:10]
-
-sentence %in% vector_row_names
-
-stop( '..................' )
+# combine meta-data with embedding vectors
+df <- cbind( df, merged_df )
 
 
 # get deponent only
@@ -63,7 +81,10 @@ df_act_small <- df_act[ sample( 1:nrow( df_act ), min_rows, replace = FALSE ), ]
 df_mid_small <- df_mid[ sample( 1:nrow( df_mid ), min_rows, replace = FALSE ), ]
 df_pas_small <- df_pas[ sample( 1:nrow( df_pas ), min_rows, replace = FALSE ), ]
 
-for( harmonize in c( TRUE, FALSE ) )
+harmonize <- TRUE
+
+#for( harmonize in c( TRUE, FALSE ) )
+for( harmonize in c( TRUE ) ) # only output balanced train/test set
 {
     # every label the same number of rows
     if( harmonize )
@@ -73,7 +94,6 @@ for( harmonize in c( TRUE, FALSE ) )
         rownames( df_harmonized ) <- NULL
         
         # active  middle passive 
-        # 76,484  76,484  76,484 
         summary( as.factor( df_harmonized$voice ) )
         
     } else {
