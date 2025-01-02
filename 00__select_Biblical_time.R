@@ -184,6 +184,15 @@ parse_treebank <- function( xml_file )
     # remove NA's
     df <- df[ !is.na( df$lemma ), ]
     
+    # determine deponents
+    df <- add_deponent( df )
+    
+    # adjust posttag 'voice' character to 'D' for each 'deponent' voice
+    substr( df[ df$deponent == TRUE, 'postag' ], 6, 6 ) <- 'D'
+    
+    # some lemmas have spaces i.e. in 0081-001: "Κοριλ ́λα"
+    df$lemma <- gsub( " ", "", df$lemma )
+    
     return( df )
 }
 
@@ -248,12 +257,8 @@ create_verb_covariates <- function( sentence_form, sentence_lemma, sentence_post
     verbs <- substr( result_df$postag, 1, 1 ) == 'v'
     out <- result_df[ verbs, ]
  
-    # add deponent column (based on -mai ending of lemma)
-    out <- add_deponent( out )
-    
     return( out )
 }
-
 
 
 ################################################################################
@@ -301,9 +306,6 @@ for( i in 1:nrow( process_meta ) )
         
         # single
         df <- parse_treebank( xml_file )
-        
-        # some lemmas have spaces i.e. in 0081-001: "Κοριλ ́λα"
-        df$lemma <- gsub( " ", "", df$lemma )
         
         # make single sentence of all the book text
         sentence_form <- paste0( df[ , 'form' ], collapse = ' ' )
@@ -358,10 +360,14 @@ head( merged_data )
 # make voice label
 merged_data$voice <- as.factor( substr( merged_data$postag, 6, 6 ) )
 
+stop( '.....' )
+
+# TODO !
+
 #     active   middle  passive 
-levels( merged_data$voice ) <- c( 'active', 'middle', 'passive' )
+levels( merged_data$voice ) <- c( 'active', 'deponent', 'middle', 'passive' )
 summary( merged_data$voice )
 
 # write to disk
-outfile <- paste0( outdir, '/merged_ALL.tsv.gz' )
+outfile <- paste0( outdir, '/ALL.tsv.gz' )
 readr::write_tsv( merged_data, file = gzfile( outfile ), quote = 'all' )

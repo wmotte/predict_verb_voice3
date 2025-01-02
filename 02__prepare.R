@@ -39,7 +39,7 @@ dir.create( outdir, showWarnings = FALSE )
 set.seed( 777 )
 
 # get neighbors
-df <- as.data.frame( readr::read_tsv( 'out.00.select.biblical.time/merged_ALL.tsv.gz', show_col_types = FALSE ) )
+df <- as.data.frame( readr::read_tsv( 'out.00.select.biblical.time/ALL.tsv.gz', show_col_types = FALSE ) )
 
 
 #############################################
@@ -49,7 +49,10 @@ df <- as.data.frame( readr::read_tsv( 'out.00.select.biblical.time/merged_ALL.ts
 # load embedding
 load( 'out.01.embed/saved_glove__5.RData' )
 
-# Define column names and labels
+# identity matrix
+identity_df <- get_matrix( embedding, words = df$postag, label = 'covariate_00' )
+
+# covariate matrices (define column names and labels)
 covariate_columns <- c( paste0( "covariate_le_", 1:5 ), paste0( "covariate_ri_", 1:5 ) )
 labels <- covariate_columns
 
@@ -59,22 +62,16 @@ merged_df <- do.call( cbind, lapply( seq_along( covariate_columns ), function( i
 } ) )
 
 # combine meta-data with embedding vectors
-df <- cbind( df, merged_df )
-
-
-# get deponent only
-df_dep <- df[ df$deponent == TRUE, ]
-df_dep$voice <- '?'
-
-all <- df[ df$deponent == FALSE, ]
+df <- cbind( cbind( df, identity_df ), merged_df )
 
 # get active, middle, passive
-df_act <- all[ all$voice %in% 'active', ]
-df_mid <- all[ all$voice %in% 'middle', ]
-df_pas <- all[ all$voice %in% 'passive', ]
+df_act <- df[ df$voice %in% 'active', ]
+df_dep <- df[ df$voice %in% 'deponent', ]
+df_mid <- df[ df$voice %in% 'middle', ]
+df_pas <- df[ df$voice %in% 'passive', ]
 
 # get min rows
-print( min_rows <- min( c( nrow( df_act ), nrow( df_mid ), nrow( df_pas ) ) ) ) # 76,484
+print( min_rows <- min( c( nrow( df_act ), nrow( df_mid ), nrow( df_pas ) ) ) ) # 10,193
 
 # select
 df_act_small <- df_act[ sample( 1:nrow( df_act ), min_rows, replace = FALSE ), ]
@@ -108,7 +105,7 @@ for( harmonize in c( TRUE ) ) # only output balanced train/test set
     
     # get percentage duplicates
     perc_duplicates <- 100 * ( num_duplicates / nrow( df_harmonized ) )
-    print( perc_duplicates ) # 0.32%
+    print( perc_duplicates ) # 0.68%
     
     # get 90% train samples / 10% test samples
     train_idx <- as.vector( caret::createDataPartition( df_harmonized$voice, p = 0.9, list = FALSE ) )

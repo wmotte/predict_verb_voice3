@@ -91,7 +91,7 @@ nwindow <- 5
 tcm <- create_tcm( preparation$it, preparation$vectorizer, skip_grams_window = nwindow, skip_grams_window_context = "symmetric" )
 
 # vector length
-rank <- 150
+rank <- 50
 
 # glove model
 glove <- GlobalVectors$new( rank = rank, x_max = 100 )
@@ -100,11 +100,11 @@ wv_main <- glove$fit_transform( tcm, n_iter = 500, convergence_tol = 0.00001, n_
 # get context matrix
 wv_context <- glove$components
 
-# 150 x 444
+# 50 x 673
 dim( wv_context )
 
 # combine main embedding and context embedding (sum) into one matrix
-# 444 x 150
+# 673 x 50
 dim( embedding <- wv_main + t( wv_context ) )
 
 # save files to disk
