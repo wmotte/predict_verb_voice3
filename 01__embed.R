@@ -95,7 +95,7 @@ rank <- 50
 
 # glove model
 glove <- GlobalVectors$new( rank = rank, x_max = 100 )
-wv_main <- glove$fit_transform( tcm, n_iter = 500, convergence_tol = 0.00001, n_threads = 4 )
+wv_main <- glove$fit_transform( tcm, n_iter = 750, convergence_tol = 0.00001, n_threads = 4 )
 
 # get context matrix
 wv_context <- glove$components
@@ -122,5 +122,3 @@ print( word_freq_df )
 
 # write to disk
 readr::write_tsv( word_freq_df, file = paste0( outdir, '/frequencies.tsv' ), quote = 'all' )
-
-
