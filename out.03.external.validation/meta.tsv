@@ -1,0 +1,5 @@
+"GLAUX_TEXT_ID"	"TLG"	"STARTDATE"	"ENDDATE"	"AUTHOR_STANDARD"	"TITLE_STANDARD"	"GENRE_STANDARD"	"DIALECT"	"SOURCE"	"SOURCE_LICENSE"	"SOURCE_FORMAT"	"TOKENS"	"TM_TEXT"
+819	"1464-001"	-200	-1	"Liber Jubilaeorum"	"Fragmenta"	"Religious History"	"Koine"	"https://el.wikisource.org"	"CC-BY-SA 3.0"	"TXT"	3170	"11525"
+988	"1701-001"	1	100	"Testamentum Abrahae"	"Testamentum Abrahae"	"Religious Narrative"	"Koine"	"https://el.wikisource.org"	"CC-BY-SA 3.0"	"TXT"	7953	"11378"
+989	"1701-002"	1	100	"Testamentum Abrahae"	"Testamentum Abrahae"	"Religious Narrative"	"Koine"	"https://el.wikisource.org"	"CC-BY-SA 3.0"	"TXT"	3766	"11378"
+1230	"0388-002"	101	200	"Acta Pauli"	"Martyrium Pauli"	"Religious Narrative"	"Koine"	"https://el.wikisource.org"	"CC-BY-SA 3.0"	"TXT"	1419	"15760"

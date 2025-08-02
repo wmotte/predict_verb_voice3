@@ -58,11 +58,6 @@ out <- cbind( df_clean, pp )
 
 summary( as.factor( out$predicted ) ) / nrow( out )
 
-# Load the dplyr package
-library( "dplyr" )
- 
-
-
 # Summarize data: count predicted labels and calculate percentages grouped by author and lemma
 summary_result <- out %>%
     group_by(author, lemma) %>%
@@ -83,5 +78,11 @@ summary_result <- out %>%
     arrange(author, desc(total_n))  # Sort by author and total count in descending order
 
 # View the result
-print(summary_result, n = 78)
+print(summary_result, n = nrow( summary_result ) )
+
+
+# write to disk
+readr::write_tsv( summary_result, file = paste0( outdir, '/summary_results_classification.tsv' ), quote = 'all' )
+
+readr::write_tsv( out, file = paste0( outdir, '/predicted_probabilities_NT_LXX.tsv' ), quote = 'all' )
 
