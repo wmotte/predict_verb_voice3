@@ -4,7 +4,14 @@
 #
 # W.M. Otte (w.m.otte@umcutrecht.nl)
 ################################################################################
+
+# Load required libraries
 library( 'ggtern' )
+library( 'cluster' )
+library( 'factoextra' )
+library( 'ggplot2' )
+library( 'dplyr' )
+library( 'purrr' )
 
 # set seed
 set.seed( 1 )
@@ -134,10 +141,105 @@ p_nt_lxx <-
     theme( legend.position = "bottom" ) +
     scale_T_continuous(breaks = my_breaks, labels = my_labels) + # Top axis
     scale_L_continuous(breaks = my_breaks, labels = my_labels) + # Left axis
-    scale_R_continuous(breaks = my_breaks, labels = my_labels) # Right axis
+    scale_R_continuous(breaks = my_breaks, labels = my_labels) + # Right axis
+    guides( fill ="none" ) # remove fill from legend
 
 # save to file
-ggsave( p_nt_lxx, file = paste0( outdir, '/Figure_2__nt_lxx_deponent_probabilities.png' ), width = 6, height = 6, dpi = 600, bg = 'white' )
+ggsave( p_nt_lxx, file = paste0( outdir, '/Figure_2a__nt_lxx_deponent_probabilities.png' ), width = 6, height = 6, dpi = 600, bg = 'white' )
+
+#################################
+########### CLUSTERING ##########
+#################################
+
+# K-Medoid Clustering Analysis
+
+# Prepare your data (assuming df is your dataframe)
+cluster_data <- df[, c('Act', 'Mid', 'Pas')]
+
+# Silhouette Analysis
+silhouette_score <- function( k ) 
+{
+    print( k )
+    pam_result <- cluster::pam( cluster_data, k )
+    ss <- silhouette( pam_result$clustering, dist( cluster_data ) )
+    mean( ss[, 3] )
+}
+
+perform_clustering <- FALSE
+
+if( perform_clustering )
+{
+
+    # Calculate silhouette scores for k = 2 to 12
+    k_values_sil <- 2:12
+    sil_values <- purrr::map_dbl( k_values_sil, silhouette_score )
+    
+    # Plot silhouette scores
+    sil_data <- data.frame( k = k_values_sil, silhouette = sil_values )
+    p_sil <- ggplot(sil_data, aes(x = k, y = silhouette)) +
+            geom_line() +
+            geom_point() +
+            scale_x_continuous(breaks = 2:15 ) +
+            labs( x = "Number of clusters (k)", y = "Average Silhouette Score") +
+        theme_bw()
+
+    # save to file
+    ggsave( p_sil, file = paste0( outdir, '/Silhouette_scores_medoid_clustering.png' ), width = 6, height = 6, dpi = 600, bg = 'white' )
+
+
+    # Find optimal k from silhouette analysis beyond the obvious 3 (act, mid, pas)
+    final_k <- 11
+    
+    # Perform PAM clustering
+    set.seed( 123 )
+    pam_result <- cluster::pam( cluster_data, final_k )
+
+    # Add cluster assignments to your dataframe
+    df$cluster <- paste0( 'cluster_', pam_result$clustering )
+
+    # Get clusters N
+    clusters_n <- as.vector( table( df$cluster ) )
+
+    # Get medoids
+    df_medoids <- df[ pam_result$id.med, ]
+    df_medoids$prob_active <- NULL
+    df_medoids$prob_middle <- NULL
+    df_medoids$prob_passive <- NULL
+    df_medoids$n <- clusters_n
+    df_medoids$postag <- NULL
+    df_medoids$tlg <- NULL
+    
+    df_medoids <- data.frame( df_medoids )
+    df_medoids <- df_medoids[ , c( 'author', 'title', 'section', 'form', 'lemma', 'predicted', 'Act', 'Mid', 'Pas', 'cluster', 'n' ) ]
+    colnames( df_medoids ) <- c( 'source', 'book', 'location', 'form', 'lemma', 'predicted', 'p(act)', 'p(mid)', 'p(pas)', 'cluster', 'n' )
+    
+    df_medoids <- df_medoids[order(df_medoids$source, df_medoids$predicted, decreasing = c(TRUE, FALSE), method = "radix"), ]
+    df_medoids$cluster <- NULL
+    
+    # write medoids to disk
+    readr::write_tsv( df_medoids, file = paste0( outdir, '/medoids.tsv' ), quote = 'all' )
+    
+    # get subset for plotting
+    subdata <- df[, c( 'Act', 'Mid', 'Pas', 'cluster' ) ]
+    subdata$group <- as.factor( subdata$cluster )
+
+    # raw dots
+    p_clustered <- 
+        ggtern( data = subdata, aes( x = Act, y = Mid, z = Pas, group = group, fill = group ) ) +
+        geom_polygon( data = regions, aes( fill = as.factor( group ) ), alpha = 0, color = "grey50", linetype = "dashed" ) +
+        geom_point( size = 2, shape = 21, color = "gray10", alpha = 0.1 ) +
+        labs(x = "Active", y = "Middle", z = "Passive", fill = "Highest Probability") +
+        theme_bw() +
+        theme( legend.position = "bottom" ) +
+        scale_T_continuous(breaks = my_breaks, labels = my_labels) +
+        scale_L_continuous(breaks = my_breaks, labels = my_labels) +
+        scale_R_continuous(breaks = my_breaks, labels = my_labels) +
+        guides( fill ="none" ) # remove fill from legend
+
+    # save to file
+    ggsave( p_clustered, file = paste0( outdir, '/Figure_2b__nt_lxx_deponent_probabilities_clustered.png' ), width = 6, height = 6, dpi = 600, bg = 'white' )
+}
+    
 
 
 ######################################
